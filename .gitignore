@@ -1,0 +1,24 @@
+# Variables de entorno
+.env
+
+# Python
+.venv/
+__pycache__/
+*.pyc
+
+# Node.js / Next.js
+node_modules/
+.next/
+out/
+
+# IDEs
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# OCI (seguridad)
+*.pem
+.oci/

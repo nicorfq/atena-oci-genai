@@ -2,6 +2,8 @@
 
 A minimalist chatbot with Python (FastAPI) as backend and Next.js as frontend, integrated with OCI Generative AI.
 
+*[Leia em português](README.pt.md) | [Leer en español](README.es.md)*
+
 ## Architecture
 
 ```mermaid

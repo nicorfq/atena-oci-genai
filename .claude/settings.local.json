@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(tail:*)",
+      "Bash(node:*)",
+      "mcp__ide__getDiagnostics"
+    ]
+  }
+}

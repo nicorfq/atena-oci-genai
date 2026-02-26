@@ -1,6 +1,8 @@
 'use client'
 
 import { useState, useRef, useEffect, DragEvent } from 'react'
+import ReactMarkdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
 import styles from './page.module.css'
 
 interface Message {
@@ -216,9 +218,13 @@ const CopyMessageButton = ({ content, tooltip }: { content: string; tooltip: str
   )
 }
 
-// Componente para renderizar mensaje con bloques de código
+// Componente para renderizar mensaje con Markdown y bloques de código
 const MessageWithCode = ({ content }: { content: string }) => {
   const [copiedIndex, setCopiedIndex] = useState<number | null>(null)
+  const codeBlockCounter = useRef(0)
+
+  // Reset counter en cada render
+  codeBlockCounter.current = 0
 
   const copyToClipboard = async (code: string, index: number) => {
     try {
@@ -230,73 +236,65 @@ const MessageWithCode = ({ content }: { content: string }) => {
     }
   }
 
-  // Regex para detectar bloques de código con o sin lenguaje
-  const codeBlockRegex = /```(\w*)\n?([\s\S]*?)```/g
-  const parts: Array<{ type: 'text' | 'code'; content: string; language?: string }> = []
-  let lastIndex = 0
-  let match
-  let codeIndex = 0
-
-  while ((match = codeBlockRegex.exec(content)) !== null) {
-    // Agregar texto antes del bloque de código
-    if (match.index > lastIndex) {
-      parts.push({ type: 'text', content: content.slice(lastIndex, match.index) })
-    }
-    // Agregar bloque de código
-    parts.push({ type: 'code', content: match[2].trim(), language: match[1] || undefined })
-    lastIndex = match.index + match[0].length
-  }
-
-  // Agregar texto restante
-  if (lastIndex < content.length) {
-    parts.push({ type: 'text', content: content.slice(lastIndex) })
-  }
-
-  // Si no hay bloques de código, retornar texto simple
-  if (parts.length === 0) {
-    return <>{content}</>
-  }
-
   return (
-    <>
-      {parts.map((part, index) => {
-        if (part.type === 'text') {
-          return <span key={index}>{part.content}</span>
-        } else {
-          const currentCodeIndex = codeIndex++
-          return (
-            <div key={index} className={styles.codeBlock}>
-              <div className={styles.codeHeader}>
-                <span className={styles.codeLanguage}>{part.language || 'código'}</span>
-                <button
-                  onClick={() => copyToClipboard(part.content, currentCodeIndex)}
-                  className={styles.copyButton}
-                  aria-label="Copiar código"
-                >
-                  {copiedIndex === currentCodeIndex ? (
-                    <>
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <path d="M20 6L9 17l-5-5"/>
-                      </svg>
-                      <span>Copiado</span>
-                    </>
-                  ) : (
-                    <>
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
-                        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
-                      </svg>
-                      <span>Copiar</span>
-                    </>
-                  )}
-                </button>
-              </div>
-              <pre className={styles.codeContent}><code>{part.content}</code></pre>
-            </div>
-          )
-        }
-      })}
-    </>
+    <div className={styles.markdownContent}>
+      <ReactMarkdown
+        remarkPlugins={[remarkGfm]}
+        components={{
+          // Bloques de código con botón de copiar
+          code({ node, className, children, ...props }) {
+            const match = /language-(\w+)/.exec(className || '')
+            const isBlock = match || (typeof children === 'string' && children.includes('\n'))
+
+            if (isBlock) {
+              const codeText = String(children).replace(/\n$/, '')
+              const currentIndex = codeBlockCounter.current++
+              const language = match ? match[1] : 'código'
+
+              return (
+                <div className={styles.codeBlock}>
+                  <div className={styles.codeHeader}>
+                    <span className={styles.codeLanguage}>{language}</span>
+                    <button
+                      onClick={() => copyToClipboard(codeText, currentIndex)}
+                      className={styles.copyButton}
+                      aria-label="Copiar código"
+                    >
+                      {copiedIndex === currentIndex ? (
+                        <>
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <path d="M20 6L9 17l-5-5"/>
+                          </svg>
+                          <span>Copiado</span>
+                        </>
+                      ) : (
+                        <>
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                          </svg>
+                          <span>Copiar</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+                  <pre className={styles.codeContent}><code>{codeText}</code></pre>
+                </div>
+              )
+            }
+
+            // Código inline
+            return <code className={styles.inlineCode} {...props}>{children}</code>
+          },
+          // Eliminar el wrapper <pre> que react-markdown agrega por defecto
+          pre({ children }) {
+            return <>{children}</>
+          },
+        }}
+      >
+        {content}
+      </ReactMarkdown>
+    </div>
   )
 }
 

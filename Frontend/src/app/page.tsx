@@ -315,6 +315,8 @@ export default function Home() {
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const lastUserMessageRef = useRef<HTMLDivElement>(null)
   const shouldScrollToUserMsg = useRef(false)
+  const chatContainerRef = useRef<HTMLDivElement>(null)
+  const [showScrollButton, setShowScrollButton] = useState(false)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const recognitionRef = useRef<any>(null)
@@ -462,6 +464,21 @@ export default function Home() {
       textareaRef.current.style.height = `${Math.min(textareaRef.current.scrollHeight, 150)}px`
     }
   }, [input])
+
+  // Detectar scroll para mostrar/ocultar botón de "ir al fondo"
+  useEffect(() => {
+    const container = chatContainerRef.current
+    if (!container) return
+
+    const handleScroll = () => {
+      const { scrollTop, scrollHeight, clientHeight } = container
+      const distanceFromBottom = scrollHeight - scrollTop - clientHeight
+      setShowScrollButton(distanceFromBottom > 200)
+    }
+
+    container.addEventListener('scroll', handleScroll)
+    return () => container.removeEventListener('scroll', handleScroll)
+  }, [])
 
   // Manejar selección de imagen
   const handleImageSelect = (files: FileList | File[]) => {
@@ -853,7 +870,7 @@ export default function Home() {
       </header>
 
       {/* Chat container */}
-      <div className={styles.chatContainer}>
+      <div className={styles.chatContainer} ref={chatContainerRef}>
         {messages.length === 0 ? (
           <div className={styles.welcome}>
             <h1 className={styles.welcomeTitle}>{t.welcomeTitle}</h1>
@@ -917,6 +934,20 @@ export default function Home() {
           </div>
         )}
       </div>
+
+      {/* Scroll to bottom button */}
+      {showScrollButton && messages.length > 0 && (
+        <button
+          onClick={scrollToBottom}
+          className={styles.scrollToBottomButton}
+          aria-label="Ir al final"
+          title="Ir al final"
+        >
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <path d="M7 13l5 5 5-5M7 6l5 5 5-5"/>
+          </svg>
+        </button>
+      )}
 
       {/* Input area */}
       <div className={styles.inputWrapper}>

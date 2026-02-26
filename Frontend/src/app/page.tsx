@@ -313,6 +313,8 @@ export default function Home() {
   const [savedChats, setSavedChats] = useState<SavedChat[]>([])
   const [currentChatId, setCurrentChatId] = useState<string | null>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
+  const lastUserMessageRef = useRef<HTMLDivElement>(null)
+  const shouldScrollToUserMsg = useRef(false)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const recognitionRef = useRef<any>(null)
@@ -446,7 +448,11 @@ export default function Home() {
   }
 
   useEffect(() => {
-    scrollToBottom()
+    if (shouldScrollToUserMsg.current && lastUserMessageRef.current) {
+      // Scroll para que el mensaje del usuario quede visible arriba
+      lastUserMessageRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' })
+      shouldScrollToUserMsg.current = false
+    }
   }, [messages])
 
   // Auto-resize textarea
@@ -633,6 +639,7 @@ export default function Home() {
     setInput('')
     clearAllImages()
     
+    shouldScrollToUserMsg.current = true
     setMessages(prev => [...prev, { 
       role: 'user', 
       content: userMessage || t.imagesSent,
@@ -856,9 +863,15 @@ export default function Home() {
           </div>
         ) : (
           <div className={styles.messages}>
-            {messages.map((message, index) => (
+            {(() => {
+              const lastUserIndex = messages.reduce((acc, m, i) => m.role === 'user' ? i : acc, -1)
+              return messages.map((message, index) => {
+                const isLastUserMsg = message.role === 'user' && index === lastUserIndex
+
+                return (
               <div
                 key={index}
+                ref={isLastUserMsg ? lastUserMessageRef : undefined}
                 className={`${styles.message} ${styles[message.role]} fade-in`}
                 style={{ animationDelay: `${index * 0.05}s` }}
               >
@@ -887,7 +900,9 @@ export default function Home() {
                   </div>
                 </div>
               </div>
-            ))}
+              )
+              })
+            })()}
             {isLoading && (
               <div className={`${styles.message} ${styles.assistant} fade-in`}>
                 <img src="/owl-logo.png" alt="Atena" className={styles.messageIcon} />
